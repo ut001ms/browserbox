@@ -11,7 +11,7 @@ pi3 drive the same logged-in browser.
 - **Agents:** `bbx` (tools/bbx, linked into `~/.local/bin`) finds the URL and
   password through `hlab` by itself.
 
-Only reachable on the tailnet (`expose: https`). Everything except `/healthz`
+Only reachable on the tailnet (`expose: tailnet`; pi3-deploy cannot do tailscale serve). Everything except `/healthz`
 is behind basic auth.
 
 ## What runs inside
