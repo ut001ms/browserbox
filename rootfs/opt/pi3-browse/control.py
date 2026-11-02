@@ -1,4 +1,4 @@
-"""Agent API for the browserbox desktop: screenshots, mouse/keyboard, file drop.
+"""Agent API for the pi3-browse desktop: screenshots, mouse/keyboard, file drop.
 
 Listens on 127.0.0.1 only; Caddy puts it behind basic auth at /api/*.
 

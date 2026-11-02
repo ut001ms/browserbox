@@ -1,9 +1,9 @@
 # pi3.app.yaml: how this app runs on the homelab. Deploy with: hlab deploy .
 # Format: plain YAML subset (no anchors, no | or > blocks).
-name: browserbox
-image: ghcr.io/ut001ms/browserbox   # built by .github/workflows/pi3-image.yml
+name: pi3-browse
+image: ghcr.io/ut001ms/pi3-browse   # built by .github/workflows/pi3-image.yml
 port: 8080   # Caddy: noVNC desktop + agent API + CDP, all behind basic auth
-hostPort: 3180
+hostPort: 3181   # 3180 is still held by the old browserbox app
 expose: tailnet   # http on the tailnet IP only (WireGuard-encrypted), never the public internet
 env:
   TZ: Europe/Paris

@@ -39,7 +39,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
-          images: ghcr.io/ut001ms/browserbox
+          images: ghcr.io/ut001ms/pi3-browse
           tags: |
             type=sha,format=long
             type=raw,value=latest,enable={{is_default_branch}}

@@ -1,4 +1,4 @@
-# browserbox: a Chromium desktop in a box, for the owner (noVNC) and for agents
+# pi3-browse: a Chromium desktop in a box, for the owner (noVNC) and for agents
 # (screenshot/click/type API + Chrome DevTools Protocol). Runs as uid 1000 with
 # no capabilities, which is all pi3-deploy allows, so Chromium uses --no-sandbox:
 # the container is the sandbox.
@@ -22,8 +22,8 @@ RUN useradd -m -u 1000 -s /bin/bash sandbox \
     && touch /home/sandbox/data/.keep \
     && mkdir -p /tmp/.X11-unix && chmod 1777 /tmp/.X11-unix \
     && chown -R sandbox:sandbox /home/sandbox \
-    && chmod +x /opt/browserbox/entrypoint.sh
+    && chmod +x /opt/pi3-browse/entrypoint.sh
 USER 1000
 WORKDIR /home/sandbox
 EXPOSE 8080
-ENTRYPOINT ["/opt/browserbox/entrypoint.sh"]
+ENTRYPOINT ["/opt/pi3-browse/entrypoint.sh"]

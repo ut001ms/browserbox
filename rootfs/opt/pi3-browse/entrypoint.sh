@@ -4,7 +4,7 @@
 # pi3 runs it with --rm and an exit would take the logs with it.
 set -uo pipefail
 
-log() { echo "browserbox: $*" >&2; }
+log() { echo "pi3-browse: $*" >&2; }
 
 # keep NAME CMD...: run CMD forever; on exit log the code and the last stderr lines.
 keep() {
@@ -31,10 +31,10 @@ mkdir -p "$PROFILE" /home/sandbox/Uploads /home/sandbox/Downloads
 if [ ! -s "$DATA/password" ]; then
   (umask 077; python3 -c 'import secrets; print(secrets.token_urlsafe(18))' > "$DATA/password")
 fi
-export BBX_USER=sandbox
-BBX_HASH=$(caddy hash-password --plaintext "$(cat "$DATA/password")")
-export BBX_HASH
-log "login user '$BBX_USER', password: $(cat "$DATA/password")"
+export PI3_BROWSE_USER=sandbox
+PI3_BROWSE_HASH=$(caddy hash-password --plaintext "$(cat "$DATA/password")")
+export PI3_BROWSE_HASH
+log "login user '$PI3_BROWSE_USER', password: $(cat "$DATA/password")"
 
 SCREEN=${SCREEN:-1280x800x24}
 W=${SCREEN%%x*}; H=${SCREEN#*x}; WIN_SIZE="$W,${H%%x*}"
@@ -44,8 +44,8 @@ keep openbox openbox &
 # VNC only on localhost: reachable through websockify, behind Caddy's basic auth.
 keep x11vnc x11vnc -display "$DISPLAY" -localhost -rfbport 5900 -forever -shared -nopw -quiet -noxdamage &
 keep websockify websockify --web /usr/share/novnc 127.0.0.1:6080 127.0.0.1:5900 &
-keep control python3 /opt/browserbox/control.py &
-keep caddy caddy run --config /opt/browserbox/Caddyfile --adapter caddyfile &
+keep control python3 /opt/pi3-browse/control.py &
+keep caddy caddy run --config /opt/pi3-browse/Caddyfile --adapter caddyfile &
 
 chrome() {
   rm -f "$PROFILE"/Singleton*

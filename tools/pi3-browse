@@ -1,17 +1,17 @@
 #!/usr/bin/env node
-// bbx: drive the browserbox from an agent session (no dependencies).
-// URL/password come from BBX_URL / BBX_PASSWORD, else from `hlab status/logs browserbox`.
+// pi3-browse: drive the pi3-browse desktop from an agent session (no dependencies).
+// URL/password come from PI3_BROWSE_URL / PI3_BROWSE_PASSWORD, else from `hlab status/logs pi3-browse`.
 import { execFileSync } from "node:child_process";
 import { createReadStream, statSync, writeFileSync } from "node:fs";
 import { basename } from "node:path";
 
 process.on("uncaughtException", (e) => {
-  console.error(`bbx: ${e.message}`);
+  console.error(`pi3-browse: ${e.message}`);
   process.exit(1);
 });
 
-const USAGE = `bbx <command>
-  shot [out.png]                 screenshot (default /tmp/bbx-shot.png); prints the path
+const USAGE = `pi3-browse <command>
+  shot [out.png]                 screenshot (default /tmp/pi3-browse-shot.png); prints the path
   click X Y [left|right|middle] [count]
   move X Y | drag X Y TO_X TO_Y | scroll X Y [up|down|left|right] [amount]
   type TEXT | key KEYS           e.g. key ctrl+l, key "ctrl+a BackSpace", key Return
@@ -26,16 +26,16 @@ function hlab(...args) {
 }
 
 function config() {
-  let url = process.env.BBX_URL;
-  let password = process.env.BBX_PASSWORD;
+  let url = process.env.PI3_BROWSE_URL;
+  let password = process.env.PI3_BROWSE_PASSWORD;
   if (!url) {
-    const s = JSON.parse(hlab("--json", "status", "browserbox"));
+    const s = JSON.parse(hlab("--json", "status", "pi3-browse"));
     url = s.url ?? s.app?.url;
-    if (!url) throw new Error("browserbox has no URL yet (is it deployed? `hlab status browserbox`)");
+    if (!url) throw new Error("pi3-browse has no URL yet (is it deployed? `hlab status pi3-browse`)");
   }
   if (!password) {
-    const lines = hlab("logs", "browserbox", "--tail", "2000").match(/password: (\S+)/g);
-    if (!lines) throw new Error("no password line in `hlab logs browserbox`; set BBX_PASSWORD");
+    const lines = hlab("logs", "pi3-browse", "--tail", "2000").match(/password: (\S+)/g);
+    if (!lines) throw new Error("no password line in `hlab logs pi3-browse`; set PI3_BROWSE_PASSWORD");
     password = lines.at(-1).slice("password: ".length);
   }
   return { url: url.replace(/\/+$/, ""), password };
@@ -60,7 +60,7 @@ const [cmd, ...a] = process.argv.slice(2);
 let out;
 switch (cmd) {
   case "shot": {
-    const file = a[0] ?? "/tmp/bbx-shot.png";
+    const file = a[0] ?? "/tmp/pi3-browse-shot.png";
     writeFileSync(file, Buffer.from(await (await call("GET", "/api/screenshot")).arrayBuffer()));
     out = file;
     break;
