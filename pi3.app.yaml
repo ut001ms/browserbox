@@ -1,0 +1,16 @@
+# pi3.app.yaml: how this app runs on the homelab. Deploy with: hlab deploy .
+# Format: plain YAML subset (no anchors, no | or > blocks).
+name: browserbox
+image: ghcr.io/ut001ms/browserbox   # built by .github/workflows/pi3-image.yml
+port: 8080   # Caddy: noVNC desktop + agent API + CDP, all behind basic auth
+hostPort: 3100
+expose: https   # tailnet HTTPS only, never the public internet
+env:
+  TZ: Europe/Paris
+  SCREEN: 1280x800x24   # good size for Claude computer-use screenshots
+secrets: []   # the login password is generated on first start (see README)
+volumes: { data: /home/sandbox/data }   # Chromium profile (logins/cookies) + password
+health:
+  path: /healthz   # 200 once Xvfb and Chromium (CDP) answer
+  startPeriod: 60
+memory: 2g

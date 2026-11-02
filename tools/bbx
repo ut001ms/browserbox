@@ -1,0 +1,116 @@
+#!/usr/bin/env node
+// bbx: drive the browserbox from an agent session (no dependencies).
+// URL/password come from BBX_URL / BBX_PASSWORD, else from `hlab status/logs browserbox`.
+import { execFileSync } from "node:child_process";
+import { createReadStream, statSync, writeFileSync } from "node:fs";
+import { basename } from "node:path";
+
+process.on("uncaughtException", (e) => {
+  console.error(`bbx: ${e.message}`);
+  process.exit(1);
+});
+
+const USAGE = `bbx <command>
+  shot [out.png]                 screenshot (default /tmp/bbx-shot.png); prints the path
+  click X Y [left|right|middle] [count]
+  move X Y | drag X Y TO_X TO_Y | scroll X Y [up|down|left|right] [amount]
+  type TEXT | key KEYS           e.g. key ctrl+l, key "ctrl+a BackSpace", key Return
+  open URL                       focus the address bar, type URL, Enter
+  upload FILE [NAME]             copy a file into the box (~/Uploads/NAME); prints its in-box path
+  files | rm NAME                list / delete uploaded files
+  cdp                            JSON {wsEndpoint, headers} for playwright chromium.connectOverCDP
+  login                          print URL, user and password (for the owner)`;
+
+function hlab(...args) {
+  return execFileSync("hlab", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+}
+
+function config() {
+  let url = process.env.BBX_URL;
+  let password = process.env.BBX_PASSWORD;
+  if (!url) {
+    const s = JSON.parse(hlab("--json", "status", "browserbox"));
+    url = s.url ?? s.app?.url;
+    if (!url) throw new Error("browserbox has no URL yet (is it deployed? `hlab status browserbox`)");
+  }
+  if (!password) {
+    const lines = hlab("logs", "browserbox", "--tail", "2000").match(/password: (\S+)/g);
+    if (!lines) throw new Error("no password line in `hlab logs browserbox`; set BBX_PASSWORD");
+    password = lines.at(-1).slice("password: ".length);
+  }
+  return { url: url.replace(/\/+$/, ""), password };
+}
+
+const cfg = config();
+const auth = "Basic " + Buffer.from(`sandbox:${cfg.password}`).toString("base64");
+
+async function call(method, path, body, headers = {}) {
+  const res = await fetch(cfg.url + path, { method, body, headers: { authorization: auth, ...headers }, duplex: "half" });
+  if (!res.ok) throw new Error(`${method} ${path}: ${res.status} ${await res.text()}`);
+  return res;
+}
+const action = async (a) => (await call("POST", "/api/action", JSON.stringify(a), { "content-type": "application/json" })).json();
+const int = (v, name) => {
+  const n = Number(v);
+  if (!Number.isInteger(n)) throw new Error(`${name} must be an integer`);
+  return n;
+};
+
+const [cmd, ...a] = process.argv.slice(2);
+let out;
+switch (cmd) {
+  case "shot": {
+    const file = a[0] ?? "/tmp/bbx-shot.png";
+    writeFileSync(file, Buffer.from(await (await call("GET", "/api/screenshot")).arrayBuffer()));
+    out = file;
+    break;
+  }
+  case "click":
+    out = await action({ action: "click", x: int(a[0], "X"), y: int(a[1], "Y"), button: a[2] ?? "left", count: Number(a[3] ?? 1) });
+    break;
+  case "move":
+    out = await action({ action: "move", x: int(a[0], "X"), y: int(a[1], "Y") });
+    break;
+  case "drag":
+    out = await action({ action: "drag", x: int(a[0], "X"), y: int(a[1], "Y"), to_x: int(a[2], "TO_X"), to_y: int(a[3], "TO_Y") });
+    break;
+  case "scroll":
+    out = await action({ action: "scroll", x: int(a[0], "X"), y: int(a[1], "Y"), direction: a[2] ?? "down", amount: Number(a[3] ?? 3) });
+    break;
+  case "type":
+    out = await action({ action: "type", text: a.join(" ") });
+    break;
+  case "key":
+    out = await action({ action: "key", keys: a.join(" ") });
+    break;
+  case "open":
+    await action({ action: "key", keys: "ctrl+l" });
+    await action({ action: "type", text: a[0] });
+    out = await action({ action: "key", keys: "Return" });
+    break;
+  case "upload": {
+    const name = a[1] ?? basename(a[0]);
+    const size = statSync(a[0]).size;
+    const res = await call("PUT", `/api/files/${encodeURIComponent(name)}`, createReadStream(a[0]), { "content-length": String(size) });
+    out = await res.json();
+    break;
+  }
+  case "files":
+    out = await (await call("GET", "/api/files")).json();
+    break;
+  case "rm":
+    out = await (await call("DELETE", `/api/files/${encodeURIComponent(a[0])}`)).json();
+    break;
+  case "cdp": {
+    const v = await (await call("GET", "/json/version")).json();
+    out = { wsEndpoint: cfg.url.replace(/^http/, "ws") + new URL(v.webSocketDebuggerUrl).pathname, headers: { authorization: auth } };
+    break;
+  }
+  case "login":
+    out = { url: cfg.url, user: "sandbox", password: cfg.password };
+    break;
+  default:
+    console.error(USAGE);
+    process.exit(cmd ? 2 : 0);
+}
+console.log(typeof out === "string" ? out : JSON.stringify(out, null, 2));
