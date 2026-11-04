@@ -3,7 +3,7 @@
 name: pi3-browse
 image: ghcr.io/ut001ms/pi3-browse   # built by .github/workflows/pi3-image.yml
 port: 8080   # Caddy: noVNC desktop + agent API + CDP, all behind basic auth
-hostPort: 3181   # 3180 is still held by the old browserbox app
+hostPort: 3181
 expose: tailnet   # http on the tailnet IP only (WireGuard-encrypted), never the public internet
 env:
   TZ: Europe/Paris
